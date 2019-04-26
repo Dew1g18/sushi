@@ -1,11 +1,12 @@
 package comp1206.sushi.common;
 
+import java.io.Serializable;
 import java.util.HashMap;
 import java.util.Map;
 
 import comp1206.sushi.common.Postcode;
 
-public class Postcode extends Model {
+public class Postcode extends Model implements Serializable {
 
 	private String name;
 	private Map<String,Double> latLong;

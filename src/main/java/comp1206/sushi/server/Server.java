@@ -27,10 +27,14 @@ public class Server implements ServerInterface {
 	public ArrayList<User> users = new ArrayList<User>();
 	public ArrayList<Postcode> postcodes = new ArrayList<Postcode>();
 	private ArrayList<UpdateListener> listeners = new ArrayList<UpdateListener>();
-	
+	private StockManager stockManager;
+	public boolean restockDishEnabled=true;
+
 	public Server() {
         logger.info("Starting up server...");
-		
+		stockManager= new StockManager(this);
+
+
 		Postcode restaurantPostcode = new Postcode("SO17 1BJ");
 		restaurant = new Restaurant("Mock Restaurant",restaurantPostcode);
 		
@@ -48,11 +52,12 @@ public class Server implements ServerInterface {
 		Ingredient ingredient2 = addIngredient("Ingredient 2","grams",supplier2,1,5,1);
 		Ingredient ingredient3 = addIngredient("Ingredient 3","grams",supplier3,1,5,1);
 		
-		Dish dish1 = addDish("Dish 1","Dish 1",1,1,10);
+		Dish dish1 = addDish("Dish 1","Dish 1",1,21,10);
 		Dish dish2 = addDish("Dish 2","Dish 2",2,1,10);
 		Dish dish3 = addDish("Dish 3","Dish 3",3,1,10);
 		
 		orders.add(new Order());
+		users.add(new User("dave","dave","neh",postcode1));
 
 		addIngredientToDish(dish1,ingredient1,1);
 		addIngredientToDish(dish1,ingredient2,2);
@@ -68,7 +73,13 @@ public class Server implements ServerInterface {
 		addDrone(1);
 		addDrone(2);
 		addDrone(3);
+
+		stockManager.init1();
+		stockManager.pauseDishChecking=false;
+		DataServer ds = new DataServer(this);
+		ds.start();
 	}
+
 	
 	@Override
 	public List<Dish> getDishes() {
@@ -77,9 +88,11 @@ public class Server implements ServerInterface {
 
 	@Override
 	public Dish addDish(String name, String description, Number price, Number restockThreshold, Number restockAmount) {
+		stockManager.pauseDishChecking=true;
 		Dish newDish = new Dish(name,description,price,restockThreshold,restockAmount);
-		this.dishes.add(newDish);
+		newDish.setStockLevel(0);
 		this.notifyUpdate();
+		this.dishes.add(newDish);
 		return newDish;
 	}
 	
@@ -91,14 +104,15 @@ public class Server implements ServerInterface {
 
 	@Override
 	public Map<Dish, Number> getDishStockLevels() {
-		Random random = new Random();
 		List<Dish> dishes = getDishes();
 		HashMap<Dish, Number> levels = new HashMap<Dish, Number>();
 		for(Dish dish : dishes) {
-			levels.put(dish,random.nextInt(50));
+			levels.put(dish,dish.getStock());
 		}
+//		stockManager.dishCheck();
 		return levels;
 	}
+
 	
 	@Override
 	public void setRestockingIngredientsEnabled(boolean enabled) {
@@ -107,17 +121,23 @@ public class Server implements ServerInterface {
 
 	@Override
 	public void setRestockingDishesEnabled(boolean enabled) {
-		
+		restockDishEnabled=enabled;
+	}
+
+	public boolean getRestockDishEnabled(){
+		return restockDishEnabled;
 	}
 	
 	@Override
 	public void setStock(Dish dish, Number stock) {
-	
+		dish.setStockLevel(stock);
+//		stockManager.dishCheck();
 	}
 
 	@Override
 	public void setStock(Ingredient ingredient, Number stock) {
-		
+		ingredient.setStockLevel(stock);
+//		stockManager.ingredientCheck();
 	}
 
 	@Override
@@ -130,6 +150,7 @@ public class Server implements ServerInterface {
 			Number restockThreshold, Number restockAmount, Number weight) {
 		Ingredient mockIngredient = new Ingredient(name,unit,supplier,restockThreshold,restockAmount,weight);
 		this.ingredients.add(mockIngredient);
+		mockIngredient.setStockLevel(mockIngredient.getRestockAmount());
 		this.notifyUpdate();
 		return mockIngredient;
 	}
@@ -212,18 +233,24 @@ public class Server implements ServerInterface {
 	
 	@Override
 	public Number getOrderCost(Order order) {
-		Random random = new Random();
-		return random.nextInt(100);
+		Double cost = 0.0;
+		for (Dish dish : dishes){
+			if(order.getOrder().get(dish)!=null) {
+				cost += order.getOrder().get(dish).doubleValue() * dish.getPrice().doubleValue();
+			}
+		}
+//		notifyUpdate();
+		return cost;
 	}
 
 	@Override
 	public Map<Ingredient, Number> getIngredientStockLevels() {
-		Random random = new Random();
-		List<Ingredient> dishes = getIngredients();
+		List<Ingredient> ingredients = getIngredients();
 		HashMap<Ingredient, Number> levels = new HashMap<Ingredient, Number>();
 		for(Ingredient ingredient : ingredients) {
-			levels.put(ingredient,random.nextInt(50));
+			levels.put(ingredient,ingredient.getStock());
 		}
+//		stockManager.ingredientCheck();
 		return levels;
 	}
 
@@ -239,8 +266,7 @@ public class Server implements ServerInterface {
 
 	@Override
 	public Number getOrderDistance(Order order) {
-		Order mock = (Order)order;
-		return mock.getDistance();
+		return order.getDistance();
 	}
 
 	@Override
@@ -295,7 +321,17 @@ public class Server implements ServerInterface {
 
 	@Override
 	public void loadConfiguration(String filename) {
+		stockManager.kill();
+		stockManager=new StockManager(this);
+		wipeServer();
 		System.out.println("Loaded configuration: " + filename);
+		Configuration config = new Configuration(this, filename);
+		this.restaurant = config.loadConfig();
+		this.users = config.users;
+		this.orders= config.orders;
+		this.notifyUpdate();
+		stockManager.init1();
+		stockManager.pauseDishChecking=false;
 	}
 
 	@Override
@@ -303,6 +339,7 @@ public class Server implements ServerInterface {
 		for(Entry<Ingredient, Number> recipeItem : recipe.entrySet()) {
 			addIngredientToDish(dish,recipeItem.getKey(),recipeItem.getValue());
 		}
+		stockManager.pauseDishChecking=false;
 		this.notifyUpdate();
 	}
 
@@ -382,6 +419,7 @@ public class Server implements ServerInterface {
 	
 	@Override
 	public void notifyUpdate() {
+//		stockManager.dishCheck();
 		this.listeners.forEach(listener -> listener.updated(new UpdateEvent()));
 	}
 
@@ -415,5 +453,22 @@ public class Server implements ServerInterface {
 		return restaurant;
 	}
 
+	private void wipeServer(){
+		this.dishes = new ArrayList<Dish>();
+		this.drones = new ArrayList<Drone>();
+		this.ingredients = new ArrayList<Ingredient>();
+		this.orders = new ArrayList<Order>();
+		this.staff = new ArrayList<Staff>();
+		this.suppliers = new ArrayList<Supplier>();
+		this.users = new ArrayList<User>();
+		this.postcodes = new ArrayList<Postcode>();
+		this.listeners = new ArrayList<UpdateListener>();
+	}
 
+
+//	public User addUser(String name, String password, String location, Postcode postcode){
+//		User newUser = new User(name, password,location,postcode);
+//		this.users.add(newUser);
+//		return newUser;
+//	}
 }

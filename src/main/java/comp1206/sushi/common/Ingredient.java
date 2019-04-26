@@ -3,7 +3,9 @@ package comp1206.sushi.common;
 import comp1206.sushi.common.Ingredient;
 import comp1206.sushi.common.Supplier;
 
-public class Ingredient extends Model {
+import java.io.Serializable;
+
+public class Ingredient extends Model implements Serializable {
 
 	private String name;
 	private String unit;
@@ -20,6 +22,26 @@ public class Ingredient extends Model {
 		this.setRestockThreshold(restockThreshold);
 		this.setRestockAmount(restockAmount);
 		this.setWeight(weight);
+	}
+
+	private Number stock;
+	public synchronized void setStockLevel(Number stockLevel){
+		this.stock = stockLevel;
+//		System.out.println(getName()+" ~ "+stockLevel);
+	}
+	public synchronized Number takePositiveStock(Number delta)throws Exception{
+		if (delta.intValue()>getStock().intValue()){
+			throw new Exception("Can't take that much!!");
+		}
+		setStockLevel(getStock().intValue()-delta.intValue());
+		return stock;
+	}
+	public synchronized Number getStock(){
+		return stock;
+	}
+	public Number restockIncrement(){
+		setStockLevel(getStock().intValue()+restockAmount.intValue());
+		return stock;
 	}
 
 	public String getName() {
