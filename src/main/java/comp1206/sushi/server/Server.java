@@ -59,6 +59,9 @@ public class Server implements ServerInterface {
 		
 //		orders.add(new Order());
 		users.add(new User("dave","dave","neh",postcode1));
+		users.add(new User("ha","","",postcode2));
+		users.add(new User("as","","",postcode2));
+		users.add(new User("qw","","",postcode2));
 
 		addIngredientToDish(dish1,ingredient1,1);
 		addIngredientToDish(dish1,ingredient2,2);
@@ -100,13 +103,25 @@ public class Server implements ServerInterface {
 	public void updateOrders(List<Order> updates){
 		for (Order update : updates) {
 			System.out.println("Adding an order!!!");
-			orders.add(update);
-			User user = update.getUser();
-			if (gh.ifInList(users, user.getName()) == null) {
-				users.add(user);
-			} else {
-				int index = users.indexOf(gh.ifInList(users, user.getName()));
-				users.set(index, user);
+			if (gh.ifInList(orders, update.getName())==null) {//NewOrder
+				update.setStatus("Recieved by server");
+				orders.add(update);
+				User user = update.getUser();
+				if (gh.ifInList(users, user.getName()) == null) {
+					users.add(user);
+				} else {
+					int index = users.indexOf(gh.ifInList(users, user.getName()));
+					users.set(index, user);
+				}
+			}else{
+				int index = orders.indexOf(gh.ifInList(orders, update.getName()));
+				User using = gh.ifInList(users, update.getUser().getName());
+				update.setUser(using);
+				using.addOrder(update);
+				int indexOfUser = users.indexOf(using);
+				users.set(indexOfUser, using);
+				orders.set(index,update);
+
 			}
 		}
 		notifyUpdate();

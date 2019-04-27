@@ -14,6 +14,7 @@ public class UpdateRecieveSocket extends Thread{
     public List<Dish> dishes;
     public List<User> users;
     public List<Postcode> postcodes;
+    public List<Order> orders;
     public boolean ready = false;
     ObjectOutputStream out;
     ObjectInputStream in;
@@ -61,12 +62,13 @@ public class UpdateRecieveSocket extends Thread{
 //                System.out.println(((List<Dish>) in.readObject()));
                 this.users = ((List<User>) in.readObject());
                 this.postcodes = ((List<Postcode>) in.readObject());
+                this.orders = ((List<Order>) in.readObject());
 //                System.out.println(this.dishes);
 //                System.out.println("Object read");
                 trying=false;
 //                System.out.println("Update got");
             } catch (Exception e) {
-                e.printStackTrace();
+//                e.printStackTrace();
             }
         }
     }

@@ -73,6 +73,7 @@ public class DataServer extends Thread{
                 output.writeUnshared(server.getDishes());
                 output.writeUnshared(server.getUsers());
                 output.writeUnshared(server.getPostcodes());
+                output.writeUnshared(server.getOrders());
                 output.flush();
                 output.reset();
 //                break;

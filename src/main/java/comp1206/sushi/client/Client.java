@@ -23,6 +23,7 @@ public class Client implements ClientInterface{
 	public List<Dish> dishes = new ArrayList<Dish>();
 	public List<Order> orders = new ArrayList<Order>();
 	public List<User> users = new ArrayList<User>();
+	public List<Order> updatedOrders = new ArrayList<>();
 	private UpdateRecieveSocket updater;
 	boolean objectCreated=false;
 	GenericHelp gh = new GenericHelp();
@@ -52,6 +53,7 @@ public class Client implements ClientInterface{
 	public void writeUpdateToClient(){
 		try {
 			updater.join();
+			updatedOrders=updater.orders;
 			if (this.restaurant != updater.restaurant) {
 				this.restaurant = updater.restaurant;
 			}
@@ -96,9 +98,14 @@ public class Client implements ClientInterface{
 					this.users = updater.users;
 					if (currentUser!=null&&gh.ifInList(updater.users,currentUser.getName())==null ){
 						this.users.add(currentUser);
-					}else if (gh.ifInList(updater.users,currentUser.getName())!=null){
-						int place = updater.users.indexOf(gh.ifInList(updater.users,currentUser.getName()));
-						this.users.set(place, currentUser);
+					}
+					else if (gh.ifInList(updater.users,currentUser.getName())!=null){
+						Map<Dish, Number> basket = currentUser.getBasket();
+						users.remove(gh.ifInList(updater.users,currentUser.getName()));
+						users.add(currentUser);
+
+//						int place = updater.users.indexOf(gh.ifInList(updater.users,currentUser.getName()));
+
 					}
 
 //					for (User user : updater.users) {
@@ -111,6 +118,14 @@ public class Client implements ClientInterface{
 //							users.remove(user);
 //						}
 //					}
+				}
+			}
+			if (currentUser!=null) {
+				for (Order order :currentUser.getOrderHistory()) {
+					Order localOrder = gh.ifInList(orders, order.getName());
+					if(localOrder!=null){
+						orders.set(orders.indexOf(localOrder),order);
+					}
 				}
 			}
 			notifyUpdate();
@@ -158,6 +173,8 @@ public class Client implements ClientInterface{
 		// TODO Auto-generated method stub
 		for (User user: getUsers()){
 			if (user.getName().equals(username)&&user.getPassword().equals(password)){
+				user.setBasket(new HashMap<>());
+				currentUser = user;
 				return user;
 			}
 		}
@@ -205,7 +222,7 @@ public class Client implements ClientInterface{
 	public Number getBasketCost(User user) {
 		// TODO Auto-generated method stub
 //		checkBasketExists(user);
-		this.currentUser = user;
+//		this.currentUser = user;
 		Double cost = 0.0;
 		for (Dish dish : dishes){
 			if(getBasket(user).get(dish)!=null) {
@@ -251,7 +268,7 @@ public class Client implements ClientInterface{
 	public void updateDishInBasket(User user, Dish dish, Number quantity) {
 		// TODO Auto-generated method stub
 //		addDishToBasket(user,dish,quantity);
-		this.currentUser=user;
+//		this.currentUser=user;
 		System.out.println(dish.getName());
 		Dish dishFromName = gh.ifInList(dishes, dish.getName());
 		if (dishFromName==null){
@@ -289,6 +306,12 @@ public class Client implements ClientInterface{
 	@Override
 	public List<Order> getOrders(User user) {
 		// TODO Auto-generated method stub
+		try{
+			User thisUser = gh.ifInList(users, user.getName());
+			return  thisUser.getOrderHistory();
+		}catch(NullPointerException e){
+			//pass
+		}
 		return user.getOrderHistory();
 	}
 
@@ -305,6 +328,11 @@ public class Client implements ClientInterface{
 	@Override
 	public String getOrderStatus(Order order) {
 		// TODO Auto-generated method stub
+		try {
+			Order orderfromlist = gh.ifInList(updatedOrders, order.getName());
+			return orderfromlist.getStatus();
+		}catch(NullPointerException e) {
+		}
 		return order.getStatus();
 	}
 
@@ -323,6 +351,7 @@ public class Client implements ClientInterface{
 	public void cancelOrder(Order order) {
 		// TODO Auto-generated method stub
 		order.setStatus("Request cancel");
+		updater.sendOrder(order);
 //		notifyUpdate();
 	}
 

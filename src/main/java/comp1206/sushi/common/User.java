@@ -27,6 +27,14 @@ public class User extends Model implements Serializable {
 		this.orderHistory = new ArrayList<>();
 	}
 
+	public void setOrderHistory(List<Order> history){
+		this.orderHistory = history;
+	}
+
+	public void addOrder(Order order){
+		orderHistory.add(order);
+	}
+
 	public String getName() {
 		return name;
 	}
