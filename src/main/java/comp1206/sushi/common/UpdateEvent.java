@@ -16,6 +16,8 @@ public class UpdateEvent {
 	 * Create a new update event
 	 */
 	public UpdateEvent() {
+//		System.out.println("Creating an empty updateEvent" +
+//				"not sure what its for though");
 	}
 	
 	/**
