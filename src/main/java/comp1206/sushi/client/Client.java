@@ -245,23 +245,6 @@ public class Client implements ClientInterface{
 			getBasket(user).remove(dish);
 		}
 
-//		notifyUpdate();
-//		this.currentUser=user;
-//		System.out.println(dish.getName());
-//		Dish dishFromName = gh.ifInList(dishes, dish.getName());
-//		if (dishFromName==null){
-//			quantity=0;
-//		}
-//		if (quantity.equals(0)){
-//			getBasket(user).remove(dish);
-//		}else{
-//			if (getBasket(user).keySet().contains(dishFromName)){
-//				getBasket(user).replace(dishFromName,quantity);
-//			}else {
-//				getBasket(user).put(dishFromName, quantity);
-//			}
-//		}
-//		notifyUpdate();
 	}
 
 	@Override

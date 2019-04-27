@@ -8,12 +8,7 @@ import comp1206.sushi.common.User;
 import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.net.SocketException;
-import java.net.SocketTimeoutException;
 import java.util.*;
-import java.util.concurrent.Executor;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ThreadPoolExecutor;
 
 public class DataServer extends Thread{
 
@@ -31,21 +26,21 @@ public class DataServer extends Thread{
         try  {
             clientToOutputMap = new HashMap<>();
             clientToInputStream = new HashMap<>();
-            System.out.println("The server is running...");
             listener  = new ServerSocket(6969);
             periodicUpdateThread();
         }catch(IOException e){
             e.printStackTrace();
         }
+        System.out.println("The server is running...");
     }
 
     public void run(){
         while(true){
             try{
-                System.out.println("running");
+                System.out.println("looking for clients");
                 Socket newClient = listener.accept();
                 newClient.setSoTimeout(1000);
-                System.out.println("accepted");
+                System.out.println("accepted a client");
                 newClient.setTcpNoDelay(true);
                 //BufferedOutputStream outputStream = new BufferedOutputStream(newClient.getOutputStream());
 
@@ -53,14 +48,14 @@ public class DataServer extends Thread{
                 ObjectOutputStream output = new ObjectOutputStream(outputStream);
                 ObjectInputStream in = new ObjectInputStream(newClient.getInputStream());
 
-                System.out.println("Streams created");
+//                System.out.println("Streams created");
 
                 clientToOutputMap.put(newClient, output);
                 clientToInputStream.put(newClient,in);
 
                 sendAll(newClient);
 
-                System.out.println("Sent init data");
+//                System.out.println("Sent init data");
                 thereAreClients=true;
             }catch(IOException e){
                 e.printStackTrace();
@@ -95,7 +90,7 @@ public class DataServer extends Thread{
 
     public void readAll(Socket client){
         try{
-            System.out.println("Attempting socket read");
+//            System.out.println("Attempting socket read");
             ObjectInputStream in = clientToInputStream.get(client);
             Order downloadedOrder = ((Order) in.readObject());
             System.out.println(downloadedOrder.user.getName());
@@ -120,7 +115,6 @@ public class DataServer extends Thread{
                         for (Socket client : clientToOutputMap.keySet()) {
                             sendAll(client);
                             readAll(client);
-
                         }
                     }}catch (InterruptedException e){
                         e.printStackTrace();
@@ -131,21 +125,18 @@ public class DataServer extends Thread{
         });
         p_updater.start();
     }
-
-
-//    public void updateUsers(List<User> downUsers){
-//        for (User user : downUsers){
-//            if (!server.getUsers().contains(user)){
-////                server.
-//            }
-//        }
-//    }
-
-    public ArrayList<Order> gotOrders;
-
-    public ArrayList<Order> getOrdersFromClients(){
+    public List<Order> getGotOrders(){
         return gotOrders;
     }
+
+
+    public void clearOrders(){
+        gotOrders= new ArrayList<>();
+    }
+
+    private ArrayList<Order> gotOrders;
+
+
 
 
     /**

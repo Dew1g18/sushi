@@ -29,6 +29,7 @@ public class Server implements ServerInterface {
 	private ArrayList<UpdateListener> listeners = new ArrayList<UpdateListener>();
 	private StockManager stockManager;
 	public boolean restockDishEnabled=true;
+	GenericHelp gh  = new GenericHelp();
 
 	public Server() {
         logger.info("Starting up server...");
@@ -56,7 +57,7 @@ public class Server implements ServerInterface {
 		Dish dish2 = addDish("Dish 2","Dish 2",2,1,10);
 		Dish dish3 = addDish("Dish 3","Dish 3",3,1,10);
 		
-		orders.add(new Order());
+//		orders.add(new Order());
 		users.add(new User("dave","dave","neh",postcode1));
 
 		addIngredientToDish(dish1,ingredient1,1);
@@ -78,9 +79,38 @@ public class Server implements ServerInterface {
 		stockManager.pauseDishChecking=false;
 		DataServer ds = new DataServer(this);
 		ds.start();
+		Thread checkDataServer = new Thread(new Runnable() {
+			@Override
+			public void run() {
+				while(true){
+					try {
+//						System.out.println("in here");
+						Thread.sleep(1000);
+						updateOrders(ds.getGotOrders());
+						ds.clearOrders();
+					}catch(InterruptedException e){
+						System.out.println("Interrupted");
+					}
+				}
+			}
+		});
+		checkDataServer.start();
 	}
 
-
+	public void updateOrders(List<Order> updates){
+		for (Order update : updates) {
+			System.out.println("Adding an order!!!");
+			orders.add(update);
+			User user = update.getUser();
+			if (gh.ifInList(users, user.getName()) == null) {
+				users.add(user);
+			} else {
+				int index = users.indexOf(gh.ifInList(users, user.getName()));
+				users.set(index, user);
+			}
+		}
+		notifyUpdate();
+	}
 
 	
 	@Override
@@ -236,9 +266,10 @@ public class Server implements ServerInterface {
 	@Override
 	public Number getOrderCost(Order order) {
 		Double cost = 0.0;
-		for (Dish dish : dishes){
-			if(order.getOrder().get(dish)!=null) {
-				cost += order.getOrder().get(dish).doubleValue() * dish.getPrice().doubleValue();
+		for (Entry<Dish,Number> entry : order.getOrder().entrySet()){
+			Dish dish = entry.getKey();
+			if(entry.getValue()!=null) {
+				cost += entry.getValue().doubleValue() * dish.getPrice().doubleValue();
 			}
 		}
 //		notifyUpdate();

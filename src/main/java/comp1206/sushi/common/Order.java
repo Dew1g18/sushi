@@ -15,7 +15,6 @@ public class Order extends Model implements Serializable {
 
 	private String status;
 	private Map<Dish,Number> order;
-	private GenericHelp gh = new GenericHelp();
 
 	public User getUser() {
 		return user;
@@ -26,6 +25,9 @@ public class Order extends Model implements Serializable {
 	}
 
 	public User user;
+
+	private String name;
+
 	
 	public Order() {
 		DateTimeFormatter dtf = DateTimeFormatter.ofPattern("dd/MM/YYYY HH:mm:ss");  
