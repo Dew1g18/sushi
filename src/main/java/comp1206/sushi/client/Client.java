@@ -15,7 +15,7 @@ public class Client implements ClientInterface{
     private static final Logger logger = LogManager.getLogger("Client");
 
     public Restaurant restaurant;
-	public User currentUser;
+	public User currentUser = null;
 
 
 	public List<Postcode> postcodes = new ArrayList<Postcode>();
@@ -32,7 +32,6 @@ public class Client implements ClientInterface{
         logger.info("Starting up client...");
 
         thereIsListener=false;
-
         updater = new UpdateRecieveSocket(this);
         updater.start();
         writeUpdateToClient();
@@ -53,8 +52,6 @@ public class Client implements ClientInterface{
 	public void writeUpdateToClient(){
 		try {
 			updater.join();
-//			System.out.println("Writing update to client");
-			List<Dish> oldDishes = this.dishes;
 			if (this.restaurant != updater.restaurant) {
 				this.restaurant = updater.restaurant;
 			}
@@ -80,6 +77,8 @@ public class Client implements ClientInterface{
 					for (Dish dish : updater.dishes) {
 						if (gh.ifInList(dishes, dish.getName()) == null) {
 							dishes.add(dish);
+						}else{
+							updater.dishChanges(gh.ifInList(dishes, dish.getName()), dish);
 						}
 					}
 					ArrayList<Dish> dishesToRemove = new ArrayList<>();
@@ -88,12 +87,20 @@ public class Client implements ClientInterface{
 							dishesToRemove.add(dish);
 						}
 					}dishes.removeAll(dishesToRemove);
+
 //				this.dishes = updater.dishes;
 				}
 			}
 			synchronized (users) {
 				if (this.users != updater.users) {
 					this.users = updater.users;
+					if (currentUser!=null&&gh.ifInList(updater.users,currentUser.getName())==null ){
+						this.users.add(currentUser);
+					}else if (gh.ifInList(updater.users,currentUser.getName())!=null){
+						int place = updater.users.indexOf(gh.ifInList(updater.users,currentUser.getName()));
+						this.users.set(place, currentUser);
+					}
+
 //					for (User user : updater.users) {
 //						if (gh.ifInList(users, user.getName()) == null) {
 //							users.add(user);
@@ -106,21 +113,9 @@ public class Client implements ClientInterface{
 //					}
 				}
 			}
-//			int i = 0;
-//			boolean notify = false;
-//			for (Dish dish: oldDishes){
-//				if (!dish.getName().equals(dishes.get(i).getName())){
-//					notify=true;
-//				}i++;
-//			}
-//			if (notify&&objectCreated){
-//				notifyUpdate();
-//			}
-
-//			System.out.println(dishes.get(0).getName());
 			notifyUpdate();
 		}catch(Exception e){
-			e.printStackTrace();
+//			e.printStackTrace();
 		}
 	}
 
@@ -296,6 +291,7 @@ public class Client implements ClientInterface{
 		// TODO Auto-generated method stub
 //		notifyUpdate();
 		Order order = user.makeOrder();
+		updater.sendOrder(order);
 		clearBasket(user);
 		return order;
 	}
@@ -366,23 +362,10 @@ public class Client implements ClientInterface{
 	public void notifyUpdate() {
 		// TODO Auto-generated method stub
 		if(thereIsListener&&isThereUser()) {
-//			for (UpdateListener listener : listeners){
-//				System.out.println(listener);
-//				listener.updated(new UpdateEvent());
-//			}
-//			System.out.println("notify running");
 			this.listeners.forEach(listener -> listener.updated(new UpdateEvent()));
 		}
 	}
 
-//	public void notifyUpdate(Model model) {
-//		// TODO Auto-generated method stub
-////		this.listeners.forEach(listener -> listener.updated(new UpdateEvent()));
-//		for (UpdateListener listener : listeners){
-//			System.out.println(listener);
-//			listener.updated(new UpdateEvent(model));
-//		}
-//	}
 
 
 	public void recievePeriodicUpdate(){
@@ -404,7 +387,7 @@ public class Client implements ClientInterface{
 		p_reciever.start();
 	}
 
-	public void pagePeriodicUpdate(){
+	public void pagePeriodicUpdate(){//deprecated
 		Thread pageUpdater = new Thread(new Runnable() {
 			@Override
 			public void run() {

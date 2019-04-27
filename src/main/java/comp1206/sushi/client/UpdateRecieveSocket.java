@@ -1,9 +1,6 @@
 package comp1206.sushi.client;
 
-import comp1206.sushi.common.Dish;
-import comp1206.sushi.common.Postcode;
-import comp1206.sushi.common.Restaurant;
-import comp1206.sushi.common.User;
+import comp1206.sushi.common.*;
 
 import java.io.*;
 import java.net.Socket;
@@ -79,6 +76,26 @@ public class UpdateRecieveSocket extends Thread{
         localDish.setDescription(updatedDish.getDescription());
     }
 
+    //todo userChanges() !!!!Probably not going to be needed as the server should have the latest in user info
+    //Handled on the update in client
+
+    public void sendOrder(Order order){
+        try {
+            this.out.writeUnshared(order);
+        }catch (IOException e){
+//            System.out.println("Do you really want to know what went wrong haha?");
+            e.printStackTrace();
+        }
+
+
+    }
+
+    /**Todo for comms
+     * Orders:
+     *      -Send and receive updates <-- large project, requires processing on server to add user then return, hoping
+     *      to update orders from info sent in users? Maybe just anotehr socket or an additional list to update in the sockets
+     *      -
+     */
 
 
 

@@ -1,11 +1,15 @@
 package comp1206.sushi.server;
 
 import comp1206.sushi.common.Dish;
+import comp1206.sushi.common.Order;
 import comp1206.sushi.common.Restaurant;
+import comp1206.sushi.common.User;
 
 import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.net.SocketException;
+import java.net.SocketTimeoutException;
 import java.util.*;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
@@ -14,16 +18,19 @@ import java.util.concurrent.ThreadPoolExecutor;
 public class DataServer extends Thread{
 
     ServerInterface server;
-    Map<Socket, ObjectOutputStream> clientSockets;
+    Map<Socket, ObjectOutputStream> clientToOutputMap;
+    Map<Socket, ObjectInputStream> clientToInputStream;
     ServerSocket listener;
 //    ObjectOutputStream out;
     ObjectInputStream in;
     boolean thereAreClients = false;
 
     public DataServer(ServerInterface server){
+        this.gotOrders = new ArrayList<>();
         this.server=server;
         try  {
-            clientSockets = new HashMap<>();
+            clientToOutputMap = new HashMap<>();
+            clientToInputStream = new HashMap<>();
             System.out.println("The server is running...");
             listener  = new ServerSocket(6969);
             periodicUpdateThread();
@@ -37,13 +44,23 @@ public class DataServer extends Thread{
             try{
                 System.out.println("running");
                 Socket newClient = listener.accept();
+                newClient.setSoTimeout(1000);
+                System.out.println("accepted");
                 newClient.setTcpNoDelay(true);
                 //BufferedOutputStream outputStream = new BufferedOutputStream(newClient.getOutputStream());
+
                 OutputStream outputStream = newClient.getOutputStream();
                 ObjectOutputStream output = new ObjectOutputStream(outputStream);
-                clientSockets.put(newClient, output);
-                this.in = new ObjectInputStream(newClient.getInputStream());
+                ObjectInputStream in = new ObjectInputStream(newClient.getInputStream());
+
+                System.out.println("Streams created");
+
+                clientToOutputMap.put(newClient, output);
+                clientToInputStream.put(newClient,in);
+
                 sendAll(newClient);
+
+                System.out.println("Sent init data");
                 thereAreClients=true;
             }catch(IOException e){
                 e.printStackTrace();
@@ -52,11 +69,11 @@ public class DataServer extends Thread{
     }
 
 
-    public void sendAll(Socket newClient){
+    public void sendAll(Socket client){
 //        while (true) {
             try {
 //            in.readObject();
-                ObjectOutputStream output = clientSockets.get(newClient);
+                ObjectOutputStream output = clientToOutputMap.get(client);
                 output.writeUnshared(server.getRestaurant());
                 output.writeUnshared(server.getDishes());
                 output.writeUnshared(server.getUsers());
@@ -65,9 +82,30 @@ public class DataServer extends Thread{
                 output.reset();
 //                break;
             } catch (IOException e) {
+                clientToInputStream.remove(client);
+                clientToOutputMap.remove(client);
+                if (clientToOutputMap.isEmpty()){
+                    thereAreClients=false;
+                }
                 e.printStackTrace();
+                System.out.println("That just told you that a socket disconnected");
             }
 //        }
+    }
+
+    public void readAll(Socket client){
+        try{
+            System.out.println("Attempting socket read");
+            ObjectInputStream in = clientToInputStream.get(client);
+            Order downloadedOrder = ((Order) in.readObject());
+            System.out.println(downloadedOrder.user.getName());
+            gotOrders.add(downloadedOrder);
+//            return downloadedOrder;
+        }catch(IOException e){
+//            e.printStackTrace();
+        }catch(ClassNotFoundException e){
+            e.printStackTrace();
+        }
     }
 
 
@@ -79,8 +117,10 @@ public class DataServer extends Thread{
                     try{
                         Thread.sleep(1000);
                     if(thereAreClients) {
-                        for (Socket client : clientSockets.keySet()) {
+                        for (Socket client : clientToOutputMap.keySet()) {
                             sendAll(client);
+                            readAll(client);
+
                         }
                     }}catch (InterruptedException e){
                         e.printStackTrace();
@@ -90,6 +130,21 @@ public class DataServer extends Thread{
             }
         });
         p_updater.start();
+    }
+
+
+//    public void updateUsers(List<User> downUsers){
+//        for (User user : downUsers){
+//            if (!server.getUsers().contains(user)){
+////                server.
+//            }
+//        }
+//    }
+
+    public ArrayList<Order> gotOrders;
+
+    public ArrayList<Order> getOrdersFromClients(){
+        return gotOrders;
     }
 
 
