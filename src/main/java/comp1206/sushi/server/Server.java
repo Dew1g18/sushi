@@ -109,6 +109,7 @@ public class Server implements ServerInterface {
 				User user = update.getUser();
 				if (gh.ifInList(users, user.getName()) == null) {
 					users.add(user);
+//					user.addOrder(update);
 				} else {
 					int index = users.indexOf(gh.ifInList(users, user.getName()));
 					users.set(index, user);

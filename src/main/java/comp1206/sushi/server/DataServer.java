@@ -101,6 +101,8 @@ public class DataServer extends Thread{
 //            e.printStackTrace();
         }catch(ClassNotFoundException e){
             e.printStackTrace();
+        }catch(NullPointerException e){
+
         }
     }
 

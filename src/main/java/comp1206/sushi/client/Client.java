@@ -171,12 +171,23 @@ public class Client implements ClientInterface{
 	public User login(String username, String password) {
 		// TODO Here I want to be using the socket to check if stuffs ok
 		// TODO Auto-generated method stub
+		User kill= null;
+		User newUser = null;
 		for (User user: getUsers()){
 			if (user.getName().equals(username)&&user.getPassword().equals(password)){
 				user.setBasket(new HashMap<>());
-				currentUser = user;
+//				kill=user;
+//				newUser = new User(username, password,user.getAddress(), user.getPostcode());
+//				currentUser=newUser;
+ 				currentUser = user;
 				return user;
 			}
+		}
+		if (kill!=null){
+			users.remove(kill);
+		}
+		if (newUser!=null){
+			users.add(newUser);
 		}
 //		notifyUpdate();
 		return currentUser;

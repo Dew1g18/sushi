@@ -35,6 +35,10 @@ public class User extends Model implements Serializable {
 		orderHistory.add(order);
 	}
 
+	public String getAddress() {
+		return address;
+	}
+
 	public String getName() {
 		return name;
 	}
