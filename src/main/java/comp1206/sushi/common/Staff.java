@@ -66,9 +66,10 @@ public class Staff extends Model {
 //			Thread.sleep(2000);
 			dish.restockBatch();
 //			System.out.println(name+" has restocked "+dish.getName());
+			System.out.println(getName()+ " restocked "+ dish.getName());
 			setStatus("IDLE");
 		}catch (Exception e){
-			e.printStackTrace();
+//			e.printStackTrace();
 			setStatus("IDLE");
 		}
 	}
