@@ -179,8 +179,8 @@ public class Client implements ClientInterface{
 				kill=user;
 				newUser = new User(username, password,user.getAddress(), user.getPostcode());
 				currentUser=newUser;
-//  				currentUser = user;
-// 				return user;
+// 				currentUser = user;
+//				return user;
 			}
 		}
 		if (kill!=null){

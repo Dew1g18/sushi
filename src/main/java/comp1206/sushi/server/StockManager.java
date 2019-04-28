@@ -17,7 +17,7 @@ public class StockManager {
     public StockManager(ServerInterface server){
         this.server = server;
         end=false;
-        this.pool = (ThreadPoolExecutor) Executors.newFixedThreadPool(5);
+        this.pool = (ThreadPoolExecutor) Executors.newFixedThreadPool(10);
 //        pool.setKeepAliveTime(70,TimeUnit.SECONDS);
         //        init1();
     }
