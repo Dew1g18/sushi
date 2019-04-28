@@ -176,11 +176,11 @@ public class Client implements ClientInterface{
 		for (User user: getUsers()){
 			if (user.getName().equals(username)&&user.getPassword().equals(password)){
 				user.setBasket(new HashMap<>());
-//				kill=user;
-//				newUser = new User(username, password,user.getAddress(), user.getPostcode());
-//				currentUser=newUser;
- 				currentUser = user;
-				return user;
+				kill=user;
+				newUser = new User(username, password,user.getAddress(), user.getPostcode());
+				currentUser=newUser;
+//  				currentUser = user;
+// 				return user;
 			}
 		}
 		if (kill!=null){
