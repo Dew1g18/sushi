@@ -2,7 +2,11 @@ package comp1206.sushi.server;
 
 import comp1206.sushi.common.*;
 
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
 import java.io.Serializable;
+import java.net.HttpURLConnection;
+import java.net.URL;
 import java.util.List;
 import java.util.Set;
 
@@ -106,5 +110,35 @@ public class GenericHelp implements Serializable{
             }
         }
         return false;
+    }
+
+
+
+    /**
+     * I'm going to get LatLong from the internet from a method here because I want to be able to
+     * throw an exception to the panel that will display postcodes in case the input is bad so that
+     * I can pop up an error before calling and updating the server.
+     *
+     * This method will be called when you are trying to edit/add a new postcode to the server.
+     */
+    public String getStuffFromAPI(Postcode postcode){
+        try {
+            URL url = new URL("https://www.southampton.ac.uk/~ob1a12/postcode/postcode.php?postcode=" + postcode.getName().replaceAll(" ", ""));
+            HttpURLConnection con = (HttpURLConnection) url.openConnection();
+            con.setRequestMethod("GET");
+            BufferedReader reader = new BufferedReader(new InputStreamReader(url.openStream()));
+            String info = reader.readLine();
+            String[] infoArray = info.split(",");
+            String latMap = infoArray[1].replaceAll("\"lat\":","");
+            String longMap = infoArray[2].replaceAll("\"long\":","");
+            info = latMap+"#"+longMap.replaceAll("}","");
+//            System.out.println(info);
+            return info.replaceAll("\"","");
+
+        }catch (Exception e){
+//            e.printStackTrace();
+            System.out.println("Postcode error");
+            return null;
+        }
     }
 }

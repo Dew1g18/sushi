@@ -3,6 +3,7 @@ package comp1206.sushi.server;
 import comp1206.sushi.common.Dish;
 import comp1206.sushi.common.Ingredient;
 import comp1206.sushi.common.Staff;
+import comp1206.sushi.common.TooMuchException;
 
 import java.util.ArrayList;
 import java.util.Map;
@@ -28,16 +29,18 @@ public class StockManager {
         end=true;
         readyDishes=new ArrayList<>();
         pool.shutdownNow();
+//        System.out.println("Shutting down stock manager");
         while(true){
-//            try{
-//            Thread.sleep(100);
-            if (pool.isTerminated()) {
-                System.out.println("Threads should be dead: " + pool.getActiveCount());
-                break;
-//            }
+//            try {
+//                Thread.sleep(100);
+//            System.out.println(pool.getActiveCount());
+                if (pool.isTerminated()) {
+                    System.out.println("Threads should be dead: " + pool.getActiveCount());
+                    break;
+                }
 //            }catch(InterruptedException e){
-                //try again lol
-            }
+////                try again lol
+//            }
 
         }
     }
@@ -50,6 +53,7 @@ public class StockManager {
             boolean yes;
             if (dish.getStockPotential()<dish.getRestockThreshold().intValue()){
                 dish.startRestocking();
+//                System.out.println("Dish restocking");
 //                System.out.println(dish.getName());
                 pool.submit(new Runnable() {
 //                Thread t = new Thread(new Runnable() {
@@ -63,7 +67,7 @@ public class StockManager {
 //                            dish.endRestocking();
                         } catch (NullPointerException e) {
 //                            e.printStackTrace();
-                            dish.endRestocking();
+//                            dish.endRestocking();
 //                            keepRunning=false;
                         }
                     }
@@ -95,6 +99,8 @@ public class StockManager {
                             if (!pauseDishChecking) {
                                 ingredientCheck();
                                 dishCheck();
+                                tryNotify();
+//                                System.out.println("RUNNNN");
 //                                dishChecker2();
                             }else{
 //                                System.out.println("Checking paused");
@@ -109,15 +115,28 @@ public class StockManager {
         stockChecker.start();
     }
 
+
+    public ArrayList<Ingredient> ingNeedRestock = new ArrayList<>();
     public void ingredientCheck(){if (!end){
+//        System.out.println("Checking ingredients");
         for (Ingredient ingredient : server.getIngredients()) {
-            if (ingredient.getStock().intValue() < ingredient.getRestockThreshold().intValue()) {
+            if (ingredient.getStockPotential()<= ingredient.getRestockThreshold().intValue()) {
                 restockIngredient(ingredient);
             }
         }
     }}
 
+    private void restockIngredient(Ingredient ingredient){if(!end){
+//            System.out.println("Restocking "+ingredient.getName()+" from "+ingredient.getStock());
+//        ingredient.restockIncrement();
+        if (ingredient.getStockPotential()<ingredient.getRestockThreshold().intValue()) {
+            System.out.println("Restock "+ingredient.getName());
+            ingNeedRestock.add(ingredient);
+            ingredient.startRestocking();
+            tryNotify();
+        }
 
+    }}
 
     private Staff getWorker(){
         Staff worker= null;
@@ -131,12 +150,6 @@ public class StockManager {
         return worker;
     }
 
-    private void restockIngredient(Ingredient ingredient){if(!end){
-//            System.out.println("Restocking "+ingredient.getName()+" from "+ingredient.getStock());
-            ingredient.restockIncrement();
-
-    }}
-
 
     public ArrayList<Dish> readyDishes= new ArrayList<>();
     //restocks dish by the amount rather than one-by-one
@@ -144,23 +157,29 @@ public class StockManager {
 //        System.out.println("Restocking "+dish.getName());
         //Taking the ingredients for this dish
         //This should keep trying to take ingredients till the right ones have been taken
-        for (Map.Entry<Ingredient, Number> ingredient : dish.getRecipe().entrySet()){
-            boolean keepTrying =true;
-            while (keepTrying){
-                try {
-                    Thread.sleep(100);
-                    ingredient.getKey().takePositiveStock(ingredient.getValue().doubleValue()*dish.getRestockAmount().doubleValue());
-                    tryNotify();
-                    keepTrying=false;
-//                    System.out.println("Used " + ingredient.getKey().getName()+"  "+ ingredient.getKey().getStock());
-                } catch (Exception e) {
-                    restockIngredient(ingredient.getKey());
-//                    System.out.println("Had to restock "+ingredient.getKey().getName());
-//                    server.notifyUpdate();
+        for (Map.Entry<Ingredient, Number> ingredient : dish.getRecipe().entrySet()) {
+            boolean keepTrying = true;
+            try{
+                while (keepTrying) {
+                    try {
+                        Thread.sleep(100);
+                        ingredient.getKey().takePositiveStock(ingredient.getValue().doubleValue() * dish.getRestockAmount().doubleValue());
+                        tryNotify();
+                        keepTrying = false;
+    //                    System.out.println("Used " + ingredient.getKey().getName()+"  "+ ingredient.getKey().getStock());
+                    } catch (TooMuchException e) {
+                        restockIngredient(ingredient.getKey());
+                        tryNotify();
+    //                    System.out.println("Had to restock "+ingredient.getKey().getName());
+    //                    server.notifyUpdate();
+                    }
                 }
+            }catch(InterruptedException e){
+                    break;
             }
         }
 
+//        tryNotify();
         //Now the dish is ready, so I will tell the staff threads that one of them should pick it up.
         readyDishes.add(dish);
         System.out.println(dish.getName()+" Will hopefully be restocked at some point.");

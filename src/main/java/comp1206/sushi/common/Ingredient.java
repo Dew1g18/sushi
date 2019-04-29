@@ -13,6 +13,7 @@ public class Ingredient extends Model implements Serializable {
 	private Number restockThreshold;
 	private Number restockAmount;
 	private Number weight;
+	private int restockers;
 
 	public Ingredient(String name, String unit, Supplier supplier, Number restockThreshold,
 			Number restockAmount, Number weight) {
@@ -22,6 +23,7 @@ public class Ingredient extends Model implements Serializable {
 		this.setRestockThreshold(restockThreshold);
 		this.setRestockAmount(restockAmount);
 		this.setWeight(weight);
+		restockers=0;
 	}
 
 	private Number stock;
@@ -29,9 +31,28 @@ public class Ingredient extends Model implements Serializable {
 		this.stock = stockLevel;
 //		System.out.println(getName()+" ~ "+stockLevel);
 	}
-	public synchronized Number takePositiveStock(Number delta)throws Exception{
+
+
+	public boolean inHand = false;
+
+
+	public void startRestocking(){
+//		isBeingRestocked=true;
+		restockers+=1;
+	}
+
+	public void endRestocking(){
+//		isBeingRestocked=false;
+		restockers-=1;
+	}
+
+	public int getStockPotential(){
+		return getStock().intValue()+ restockers*restockAmount.intValue();
+	}
+
+	public synchronized Number takePositiveStock(Number delta)throws TooMuchException{
 		if (delta.intValue()>getStock().intValue()){
-			throw new Exception("Can't take that much!!");
+			throw new TooMuchException();
 		}
 		setStockLevel(getStock().intValue()-delta.intValue());
 		return stock;

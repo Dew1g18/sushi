@@ -34,11 +34,13 @@ public class Server implements ServerInterface {
 	public boolean restockDishEnabled=true;
 	GenericHelp gh  = new GenericHelp();
 	ThreadPoolExecutor staffPool;
+	ThreadPoolExecutor dronePool;
 
 	public Server() {
         logger.info("Starting up server...");
 		stockManager= new StockManager(this);
 		this.staffPool = (ThreadPoolExecutor) Executors.newFixedThreadPool(10);
+		this.dronePool = (ThreadPoolExecutor) Executors.newFixedThreadPool(10);
 
 		Postcode restaurantPostcode = new Postcode("SO17 1BJ");
 		restaurant = new Restaurant("Mock Restaurant",restaurantPostcode);
@@ -82,7 +84,7 @@ public class Server implements ServerInterface {
 		addDrone(2);
 		addDrone(3);
 
-		startStaffAgain();
+		startStuffAgain();
 
 		stockManager.init1();
 		stockManager.pauseDishChecking=false;
@@ -262,6 +264,9 @@ public class Server implements ServerInterface {
 	@Override
 	public Drone addDrone(Number speed) {
 		Drone mock = new Drone(speed);
+		mock.setStockManager(stockManager);
+		mock.setRestaurant(restaurant.getLocation());
+//		dronePool.submit(mock);
 		this.drones.add(mock);
 		return mock;
 	}
@@ -383,10 +388,15 @@ public class Server implements ServerInterface {
 
 	@Override
 	public Postcode addPostcode(String code) {
-		Postcode mock = new Postcode(code);
-		this.postcodes.add(mock);
-		this.notifyUpdate();
-		return mock;
+		Postcode mock;
+		try {
+			mock = new Postcode(code, getRestaurant());
+			this.postcodes.add(mock);
+			this.notifyUpdate();
+			return mock;
+		}catch(NullPointerException e){
+			return null;
+		}
 	}
 
 	@Override
@@ -418,11 +428,18 @@ public class Server implements ServerInterface {
 	public void loadConfiguration(String filename){
 
 		staffPool.shutdownNow();
+		dronePool.shutdownNow();
 //		try {
 			while (true) {
 //				Thread.sleep(100);
-				if (staffPool.isTerminating()) {
-					System.out.println("Threads should be dead: " + staffPool.getActiveCount());
+				if (staffPool.isTerminated()) {
+					System.out.println("Staff threads should be dead: " + staffPool.getActiveCount());
+					break;
+				}
+			}
+			while(true){
+				if (dronePool.isTerminated()) {
+					System.out.println("Drone threads should be dead: " + dronePool.getActiveCount());
 					break;
 				}
 			}
@@ -435,16 +452,20 @@ public class Server implements ServerInterface {
 		this.users = config.users;
 		this.orders= config.orders;
 		this.notifyUpdate();
-		startStaffAgain();
+		startStuffAgain();
 		stockManager.init1();
 		stockManager.pauseDishChecking=false;
 	}
 
 
-	public void startStaffAgain(){
+	public void startStuffAgain(){
 		staffPool = (ThreadPoolExecutor) Executors.newFixedThreadPool(10);
+		dronePool = (ThreadPoolExecutor) Executors.newFixedThreadPool(10);
 		for (Staff staff : staff){
 			staffPool.submit(staff);
+		}
+		for (Drone drone : drones){
+			dronePool.submit(drone);
 		}
 	}
 
