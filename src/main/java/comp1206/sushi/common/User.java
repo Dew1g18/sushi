@@ -32,7 +32,9 @@ public class User extends Model implements Serializable {
 	}
 
 	public void addOrder(Order order){
-		orderHistory.add(order);
+		if(!order.getStatus().equals("REGISTER_USER")) {
+			orderHistory.add(order);
+		}
 	}
 
 	public String getAddress() {

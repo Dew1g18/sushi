@@ -28,6 +28,8 @@ public class Dish extends Model implements Serializable {
 //		this.batches=1;
 	}
 
+	public boolean inHand = false;
+
 	private boolean beingRestocked;
 	public void startRestocking(){
 		beingRestocked=true;

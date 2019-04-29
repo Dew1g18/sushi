@@ -1,11 +1,14 @@
 package comp1206.sushi.server;
 
+import java.text.RuleBasedCollator;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Random;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadPoolExecutor;
 
 import javax.swing.JOptionPane;
 
@@ -30,11 +33,12 @@ public class Server implements ServerInterface {
 	private StockManager stockManager;
 	public boolean restockDishEnabled=true;
 	GenericHelp gh  = new GenericHelp();
+	ThreadPoolExecutor staffPool;
 
 	public Server() {
         logger.info("Starting up server...");
 		stockManager= new StockManager(this);
-
+		this.staffPool = (ThreadPoolExecutor) Executors.newFixedThreadPool(10);
 
 		Postcode restaurantPostcode = new Postcode("SO17 1BJ");
 		restaurant = new Restaurant("Mock Restaurant",restaurantPostcode);
@@ -78,6 +82,8 @@ public class Server implements ServerInterface {
 		addDrone(2);
 		addDrone(3);
 
+		startStaffAgain();
+
 		stockManager.init1();
 		stockManager.pauseDishChecking=false;
 		DataServer ds = new DataServer(this);
@@ -103,29 +109,34 @@ public class Server implements ServerInterface {
 	public void updateOrders(List<Order> updates){
 		for (Order update : updates) {
 			System.out.println("Adding an order!!!");
-			if (gh.ifInList(orders, update.getName())==null) {//NewOrder
-				update.setStatus("Recieved by server");
-				orders.add(update);
-				User user = update.getUser();
-				if (gh.ifInList(users, user.getName()) == null) {
-					users.add(user);
+			if (!update.getStatus().equals("REGISTER_USER")) {
+				if (gh.ifInList(orders, update.getName()) == null) {//NewOrder
+					update.setStatus("Recieved by server");
+					orders.add(update);
+					User user = update.getUser();
+					if (gh.ifInList(users, user.getName()) == null) {
+						users.add(user);
 //					user.addOrder(update);
+					} else {
+						int index = users.indexOf(gh.ifInList(users, user.getName()));
+						users.set(index, user);
+					}
 				} else {
-					int index = users.indexOf(gh.ifInList(users, user.getName()));
-					users.set(index, user);
+					int index = orders.indexOf(gh.ifInList(orders, update.getName()));
+					User using = gh.ifInList(users, update.getUser().getName());
+					update.setUser(using);
+					using.addOrder(update);
+					int indexOfUser = users.indexOf(using);
+					users.set(indexOfUser, using);
+					orders.set(index, update);
+
 				}
 			}else{
-				int index = orders.indexOf(gh.ifInList(orders, update.getName()));
-				User using = gh.ifInList(users, update.getUser().getName());
-				update.setUser(using);
-				using.addOrder(update);
-				int indexOfUser = users.indexOf(using);
-				users.set(indexOfUser, using);
-				orders.set(index,update);
-
+				users.add(update.getUser());
 			}
 		}
 		notifyUpdate();
+
 	}
 
 	
@@ -145,9 +156,14 @@ public class Server implements ServerInterface {
 	}
 	
 	@Override
-	public void removeDish(Dish dish) {
-		this.dishes.remove(dish);
-		this.notifyUpdate();
+	public void removeDish(Dish dish) throws UnableToDeleteException{
+		if(gh.isDishUsed(orders,dish)){
+//			System.out.println("But its used");
+			throw new UnableToDeleteException("Can't delete that dish!!");
+		}else {
+			this.dishes.remove(dish);
+			this.notifyUpdate();
+		}
 	}
 
 	@Override
@@ -204,10 +220,14 @@ public class Server implements ServerInterface {
 	}
 
 	@Override
-	public void removeIngredient(Ingredient ingredient) {
-		int index = this.ingredients.indexOf(ingredient);
-		this.ingredients.remove(index);
-		this.notifyUpdate();
+	public void removeIngredient(Ingredient ingredient)throws UnableToDeleteException {
+		if(gh.isIngredientUsed(dishes,ingredient)){
+			throw new UnableToDeleteException("Can't delete this ingredient!!");
+		}else {
+			int index = this.ingredients.indexOf(ingredient);
+			this.ingredients.remove(index);
+			this.notifyUpdate();
+		}
 	}
 
 	@Override
@@ -224,10 +244,14 @@ public class Server implements ServerInterface {
 
 
 	@Override
-	public void removeSupplier(Supplier supplier) {
-		int index = this.suppliers.indexOf(supplier);
-		this.suppliers.remove(index);
-		this.notifyUpdate();
+	public void removeSupplier(Supplier supplier) throws UnableToDeleteException{
+		if(gh.isSupplierUsed(ingredients, supplier)){
+			throw new UnableToDeleteException("Can't delete this supplier!!");
+		}else {
+			int index = this.suppliers.indexOf(supplier);
+			this.suppliers.remove(index);
+			this.notifyUpdate();
+		}
 	}
 
 	@Override
@@ -243,10 +267,14 @@ public class Server implements ServerInterface {
 	}
 
 	@Override
-	public void removeDrone(Drone drone) {
-		int index = this.drones.indexOf(drone);
-		this.drones.remove(index);
-		this.notifyUpdate();
+	public void removeDrone(Drone drone) throws UnableToDeleteException{
+		if (!drone.getStatus().equals("IDLE")){
+			throw new UnableToDeleteException("Drone busy, can't delete!");
+		}else{
+			int index = this.drones.indexOf(drone);
+			this.drones.remove(index);
+			this.notifyUpdate();
+		}
 	}
 
 	@Override
@@ -257,14 +285,20 @@ public class Server implements ServerInterface {
 	@Override
 	public Staff addStaff(String name) {
 		Staff mock = new Staff(name);
+		mock.setStockManager(stockManager);
+//		staffPool.submit(mock);
 		this.staff.add(mock);
 		return mock;
 	}
 
 	@Override
-	public void removeStaff(Staff staff) {
-		this.staff.remove(staff);
-		this.notifyUpdate();
+	public void removeStaff(Staff staff)throws UnableToDeleteException{
+		if (!staff.getStatus().equals("IDLE")){
+			throw new UnableToDeleteException("Drone busy, can't delete!");
+		}else {
+			this.staff.remove(staff);
+			this.notifyUpdate();
+		}
 	}
 
 	@Override
@@ -273,10 +307,14 @@ public class Server implements ServerInterface {
 	}
 
 	@Override
-	public void removeOrder(Order order) {
-		int index = this.orders.indexOf(order);
-		this.orders.remove(index);
-		this.notifyUpdate();
+	public void removeOrder(Order order) throws UnableToDeleteException{
+		if(order.getStatus().equals("Request cancel")||order.getStatus().equals("Complete")) {
+			int index = this.orders.indexOf(order);
+			this.orders.remove(index);
+			this.notifyUpdate();
+		}else{
+			throw new UnableToDeleteException("Order in progress, request cancel or comeplete to delete!!");
+		}
 	}
 	
 	@Override
@@ -353,8 +391,12 @@ public class Server implements ServerInterface {
 
 	@Override
 	public void removePostcode(Postcode postcode) throws UnableToDeleteException {
-		this.postcodes.remove(postcode);
-		this.notifyUpdate();
+		if (gh.isPostcodeUsed(this, postcode)){
+			throw new UnableToDeleteException("Postcode used!!");
+		}else {
+			this.postcodes.remove(postcode);
+			this.notifyUpdate();
+		}
 	}
 
 	@Override
@@ -363,13 +405,27 @@ public class Server implements ServerInterface {
 	}
 	
 	@Override
-	public void removeUser(User user) {
-		this.users.remove(user);
-		this.notifyUpdate();
+	public void removeUser(User user) throws UnableToDeleteException{
+		if(gh.isUserUsed(orders, user)){
+			throw new UnableToDeleteException("User has an active order!");
+		}else {
+			this.users.remove(user);
+			this.notifyUpdate();
+		}
 	}
 
 	@Override
-	public void loadConfiguration(String filename) {
+	public void loadConfiguration(String filename){
+
+		staffPool.shutdownNow();
+//		try {
+			while (true) {
+//				Thread.sleep(100);
+				if (staffPool.isTerminating()) {
+					System.out.println("Threads should be dead: " + staffPool.getActiveCount());
+					break;
+				}
+			}
 		stockManager.kill();
 		stockManager=new StockManager(this);
 		wipeServer();
@@ -379,8 +435,17 @@ public class Server implements ServerInterface {
 		this.users = config.users;
 		this.orders= config.orders;
 		this.notifyUpdate();
+		startStaffAgain();
 		stockManager.init1();
 		stockManager.pauseDishChecking=false;
+	}
+
+
+	public void startStaffAgain(){
+		staffPool = (ThreadPoolExecutor) Executors.newFixedThreadPool(10);
+		for (Staff staff : staff){
+			staffPool.submit(staff);
+		}
 	}
 
 	@Override

@@ -1,10 +1,11 @@
 package comp1206.sushi.common;
 
 import comp1206.sushi.common.Staff;
+import comp1206.sushi.server.StockManager;
 
 import java.util.Random;
 
-public class Staff extends Model {
+public class Staff extends Model implements Runnable{
 
 	private String name;
 	private String status;
@@ -51,9 +52,35 @@ public class Staff extends Model {
 			dish.restockIncrement();
 //			System.out.println(name+" has restocked "+dish.getName());
 			setStatus("IDLE");
+			dish.endRestocking();
 		}catch (Exception e){
 			e.printStackTrace();
 			setStatus("IDLE");
+		}
+	}
+
+
+	public StockManager stockManager;
+	public void setStockManager(StockManager stockManager){
+		this.stockManager=stockManager;
+	}
+
+	public void run(){
+		try {
+			while (true){
+				Thread.sleep(100);
+				if (stockManager.readyDishes.size()>0&&getStatus().equals("IDLE")) {
+					Dish dish = stockManager.readyDishes.remove(0);
+					dish.inHand=true;
+					setStatus("WORKING on " + dish.getName());
+					System.out.println(getName()+" is "+getStatus());
+					restockBatch(dish);
+					dish.inHand=false;
+				}
+			}
+		}catch(InterruptedException e){
+//				e.printStackTrace();
+			System.out.println("Probably a new config, hoping this will keep going afterwards.");
 		}
 	}
 
@@ -68,14 +95,12 @@ public class Staff extends Model {
 //			System.out.println(name+" has restocked "+dish.getName());
 			System.out.println(getName()+ " restocked "+ dish.getName());
 			setStatus("IDLE");
+			dish.endRestocking();
 		}catch (Exception e){
 //			e.printStackTrace();
 			setStatus("IDLE");
 		}
 	}
 
-	public void restockItem(Ingredient ingredient){
-
-	}
 
 }

@@ -159,10 +159,15 @@ public class Client implements ClientInterface{
 	
 	@Override
 	public User register(String username, String password, String address, Postcode postcode) {
+		if(gh.isUsernameUsed(users, username)){
+			return null;
+		}
 		User newUser = new User(username,password,address,postcode);
 		this.currentUser = newUser;
 		users.add(newUser);
-		//TODO have this send the new user to the server.
+		Order registrationOrder = newUser.makeOrder();
+		registrationOrder.setStatus("REGISTER_USER");
+		updater.sendOrder(registrationOrder);
 //		notifyUpdate();
 		return newUser;
 	}
