@@ -4,6 +4,7 @@ import comp1206.sushi.common.Dish;
 import comp1206.sushi.common.Ingredient;
 import comp1206.sushi.common.Staff;
 
+import java.util.ArrayList;
 import java.util.Map;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadPoolExecutor;
@@ -25,6 +26,7 @@ public class StockManager {
     void kill(){
         pauseDishChecking=true;
         end=true;
+        readyDishes=new ArrayList<>();
         pool.shutdownNow();
         while(true){
 //            try{
@@ -67,7 +69,7 @@ public class StockManager {
                             }
                             restockDishBatch(dish);
 
-                            dish.endRestocking();
+//                            dish.endRestocking();
                         } catch (NullPointerException e) {
 //                            e.printStackTrace();
                             dish.endRestocking();
@@ -124,52 +126,7 @@ public class StockManager {
         }
     }}
 
-    //restocks dish once
-//    private void restockDish(Dish dish){if (!end){
-//        //Taking the ingredients for this dish
-//        //This should keep trying to take ingredients till the right ones have been taken
-//        for (Map.Entry<Ingredient, Number> ingredient : dish.getRecipe().entrySet()){
-//            boolean keepTrying =true;
-//            while (keepTrying){
-//                try {
-//                    Thread.sleep(100);
-//                    ingredient.getKey().takePositiveStock(ingredient.getValue().doubleValue());
-//                    keepTrying=false;
-//                } catch (Exception e) {
-//                    restockIngredient(ingredient.getKey());
-////                    System.out.println("Had to restock an ingredient");
-////                    server.notifyUpdate();
-//                }
-//            }
-//        }
-//        //Finding a staff member to complete the task
-//        boolean notGotWorker = true;
-//        while (notGotWorker) {
-//            try {
-//                Thread.sleep(100);
-//                Staff worker = getWorker();
-//                synchronized (worker) {
-//                    //If a worker is found, completing the task
-//                    if (worker != null) {
-//                        notGotWorker = false;
-////                        worker.setStatus("WORKING on "+dish.getName());
-//                        try {
-//                            server.notifyUpdate();
-//                        } catch (NullPointerException e) {
-////                        System.out.println("Can I just ignore the ones of these which will pop up on boot?");
-//                        }
-//                        worker.restockItem(dish);
-//                    }
-//                }
-//            }catch (NullPointerException e){
-////                System.out.println("lacking in workers");
-//                //Ignoring this, its just the thread has to sit here an wait for a worker to be idle so it can
-//                //restock this dish
-//            }catch (InterruptedException e){
-//                //Just trying to reduce cpu consumption with these sleeps
-//            }
-//        }
-//    }}
+
 
     private Staff getWorker(){
         Staff worker= null;
@@ -189,6 +146,8 @@ public class StockManager {
 
     }}
 
+
+    public ArrayList<Dish> readyDishes= new ArrayList<>();
     //restocks dish by the ammount rather than one-by-one
     private void restockDishBatch(Dish dish){if (!end){
 //        System.out.println("Restocking "+dish.getName());
@@ -202,7 +161,7 @@ public class StockManager {
                     ingredient.getKey().takePositiveStock(ingredient.getValue().doubleValue()*dish.getRestockAmount().doubleValue());
                     tryNotify();
                     keepTrying=false;
-                    System.out.println("Used " + ingredient.getKey().getName()+"  "+ ingredient.getKey().getStock());
+//                    System.out.println("Used " + ingredient.getKey().getName()+"  "+ ingredient.getKey().getStock());
                 } catch (Exception e) {
                     restockIngredient(ingredient.getKey());
 //                    System.out.println("Had to restock "+ingredient.getKey().getName());
@@ -210,40 +169,48 @@ public class StockManager {
                 }
             }
         }
-        //Finding a staff member to complete the task
-        boolean notGotWorker = true;
-        while (notGotWorker) {
-            try {
-                Thread.sleep(100);
-                if (server.getDishes().contains(dish)){
-                    Staff worker = getWorker();
-                    synchronized (worker) {
-                        //If a worker is found, completing the task
-                        if (worker != null) {
-                            notGotWorker = false;
-                            worker.setStatus("WORKING on "+dish.getName());
-                            System.out.println(worker.getName()+" "+worker.getStatus());
-                            try {
-                                server.notifyUpdate();
-                            } catch (NullPointerException e) {
-    //                        System.out.println("Can I just ignore the ones of these which will pop up on boot?");
-                            }
-                            worker.restockBatch(dish);
-                        }
-                    }
-                }
-            }catch (NullPointerException e){
-//                System.out.println("lacking in workers");
-                //Ignoring this, its just the thread has to sit here an wait for a worker to be idle so it can
-                //restock this dish
-            }catch(InterruptedException e){
-                //catch and release for the good of cpu health
-//                e.printStackTrace();
-                //In this case I needed to get out of the loop here if the interrupt was thrown becasue that was the
-                //Threadpool trying to shut down and I was not allowing it because I would just catch that exception and move on
-                break;
-            }
-        }
+
+        //Now the dish is ready, so I will tell the staff threads that one of them should pick it up.
+        readyDishes.add(dish);
+        System.out.println(dish.getName()+" Will hopefully be restocked at some point.");
+
+
+//
+//        //Finding a staff member to complete the task
+//        boolean notGotWorker = true;
+//        while (notGotWorker) {
+//            try {
+//                Thread.sleep(100);
+//                if (server.getDishes().contains(dish)){
+//                    Staff worker = getWorker();
+//                    synchronized (worker) {
+//                        //If a worker is found, completing the task
+//                        if (worker != null) {
+//                            notGotWorker = false;
+//                            worker.setStatus("WORKING on "+dish.getName());
+//                            System.out.println(worker.getName()+" "+worker.getStatus());
+//                            try {
+//                                server.notifyUpdate();
+//                            } catch (NullPointerException e) {
+//    //                        System.out.println("Can I just ignore the ones of these which will pop up on boot?");
+//                            }
+//                            worker.restockBatch(dish);
+//                        }
+//                    }
+//                }
+//            }catch (NullPointerException e){
+////                System.out.println("lacking in workers");
+//                //Ignoring this, its just the thread has to sit here an wait for a worker to be idle so it can
+//                //restock this dish
+//            }catch(InterruptedException e){
+//                //catch and release for the good of cpu health
+////                e.printStackTrace();
+//                //In this case I needed to get out of the loop here if the interrupt was thrown becasue that was the
+//                //Threadpool trying to shut down and I was not allowing it because I would just catch that exception and move on
+//                break;
+//            }
+//        }
+
     }}
 
     public void tryNotify(){

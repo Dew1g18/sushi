@@ -1,11 +1,14 @@
 package comp1206.sushi.server;
 
+import java.text.RuleBasedCollator;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Random;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadPoolExecutor;
 
 import javax.swing.JOptionPane;
 
@@ -30,11 +33,12 @@ public class Server implements ServerInterface {
 	private StockManager stockManager;
 	public boolean restockDishEnabled=true;
 	GenericHelp gh  = new GenericHelp();
+	ThreadPoolExecutor staffPool;
 
 	public Server() {
         logger.info("Starting up server...");
 		stockManager= new StockManager(this);
-
+		this.staffPool = (ThreadPoolExecutor) Executors.newFixedThreadPool(10);
 
 		Postcode restaurantPostcode = new Postcode("SO17 1BJ");
 		restaurant = new Restaurant("Mock Restaurant",restaurantPostcode);
@@ -77,6 +81,8 @@ public class Server implements ServerInterface {
 		addDrone(1);
 		addDrone(2);
 		addDrone(3);
+
+		startStaffAgain();
 
 		stockManager.init1();
 		stockManager.pauseDishChecking=false;
@@ -126,6 +132,7 @@ public class Server implements ServerInterface {
 			}
 		}
 		notifyUpdate();
+
 	}
 
 	
@@ -206,6 +213,7 @@ public class Server implements ServerInterface {
 	@Override
 	public void removeIngredient(Ingredient ingredient) {
 		int index = this.ingredients.indexOf(ingredient);
+
 		this.ingredients.remove(index);
 		this.notifyUpdate();
 	}
@@ -257,6 +265,8 @@ public class Server implements ServerInterface {
 	@Override
 	public Staff addStaff(String name) {
 		Staff mock = new Staff(name);
+		mock.setStockManager(stockManager);
+//		staffPool.submit(mock);
 		this.staff.add(mock);
 		return mock;
 	}
@@ -369,7 +379,17 @@ public class Server implements ServerInterface {
 	}
 
 	@Override
-	public void loadConfiguration(String filename) {
+	public void loadConfiguration(String filename){
+
+		staffPool.shutdownNow();
+//		try {
+			while (true) {
+//				Thread.sleep(100);
+				if (staffPool.isTerminating()) {
+					System.out.println("Threads should be dead: " + staffPool.getActiveCount());
+					break;
+				}
+			}
 		stockManager.kill();
 		stockManager=new StockManager(this);
 		wipeServer();
@@ -379,8 +399,17 @@ public class Server implements ServerInterface {
 		this.users = config.users;
 		this.orders= config.orders;
 		this.notifyUpdate();
+		startStaffAgain();
 		stockManager.init1();
 		stockManager.pauseDishChecking=false;
+	}
+
+
+	public void startStaffAgain(){
+		staffPool = (ThreadPoolExecutor) Executors.newFixedThreadPool(10);
+		for (Staff staff : staff){
+			staffPool.submit(staff);
+		}
 	}
 
 	@Override

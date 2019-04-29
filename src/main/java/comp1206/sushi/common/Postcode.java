@@ -3,6 +3,7 @@ package comp1206.sushi.common;
 import java.io.Serializable;
 import java.util.HashMap;
 import java.util.Map;
+//import LatLng;
 
 import comp1206.sushi.common.Postcode;
 
@@ -16,6 +17,7 @@ public class Postcode extends Model implements Serializable {
 		this.name = code;
 		calculateLatLong();
 		this.distance = Integer.valueOf(0);
+//		LatLng latLong = new LatLng();
 	}
 	
 	public Postcode(String code, Restaurant restaurant) {
