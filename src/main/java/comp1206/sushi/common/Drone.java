@@ -21,7 +21,7 @@ public class Drone extends Model implements Runnable {
 		this.setCapacity(1);
 		this.setBattery(100);
 		this.setStatus("IDLE");
-		this.setProgress(0);
+		this.setProgress(null);
 		this.setDestination(null);
 
 	}
@@ -49,6 +49,7 @@ public class Drone extends Model implements Runnable {
 					ing.inHand=true;
 
 					ing.restockIncrement();
+					setProgress(null);
 					ing.inHand=false;
 					ing.endRestocking();
 					setStatus("IDLE");

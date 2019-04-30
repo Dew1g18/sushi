@@ -24,7 +24,10 @@ public class Server implements ServerInterface {
 	public ArrayList<Dish> dishes = new ArrayList<Dish>();
 	public ArrayList<Drone> drones = new ArrayList<Drone>();
 	public ArrayList<Ingredient> ingredients = new ArrayList<Ingredient>();
+
 	public ArrayList<Order> orders = new ArrayList<Order>();
+	public ArrayList<Order> readyOrders = new ArrayList<Order>();
+
 	public ArrayList<Staff> staff = new ArrayList<Staff>();
 	public ArrayList<Supplier> suppliers = new ArrayList<Supplier>();
 	public ArrayList<User> users = new ArrayList<User>();
@@ -35,6 +38,7 @@ public class Server implements ServerInterface {
 	GenericHelp gh  = new GenericHelp();
 	ThreadPoolExecutor staffPool;
 	ThreadPoolExecutor dronePool;
+	OrderHandler orderHandler;
 
 	public Server() {
         logger.info("Starting up server...");
@@ -106,6 +110,10 @@ public class Server implements ServerInterface {
 			}
 		});
 		checkDataServer.start();
+		orderHandler = new OrderHandler(this);
+
+
+
 	}
 
 	public void updateOrders(List<Order> updates){
@@ -113,12 +121,11 @@ public class Server implements ServerInterface {
 			System.out.println("Adding an order!!!");
 			if (!update.getStatus().equals("REGISTER_USER")) {
 				if (gh.ifInList(orders, update.getName()) == null) {//NewOrder
-					update.setStatus("Recieved by server");
+					update.setStatus("Received by server");
 					orders.add(update);
 					User user = update.getUser();
 					if (gh.ifInList(users, user.getName()) == null) {
 						users.add(user);
-//					user.addOrder(update);
 					} else {
 						int index = users.indexOf(gh.ifInList(users, user.getName()));
 						users.set(index, user);
@@ -134,7 +141,9 @@ public class Server implements ServerInterface {
 
 				}
 			}else{
-				users.add(update.getUser());
+				User user = update.getUser();
+				user.setOrderHistory(new ArrayList<>());
+				users.add(user);
 			}
 		}
 		notifyUpdate();
@@ -314,8 +323,12 @@ public class Server implements ServerInterface {
 	@Override
 	public void removeOrder(Order order) throws UnableToDeleteException{
 		if(order.getStatus().equals("Request cancel")||order.getStatus().equals("Complete")) {
+			if(order.getStatus().equals("Request cancel")) {
+				order.setStatus("Cancelled");
+			}
 			int index = this.orders.indexOf(order);
 			this.orders.remove(index);
+			orderHandler.cancelOrder(order);
 			this.notifyUpdate();
 		}else{
 			throw new UnableToDeleteException("Order in progress, request cancel or comeplete to delete!!");
@@ -426,7 +439,7 @@ public class Server implements ServerInterface {
 
 	@Override
 	public void loadConfiguration(String filename){
-
+		this.readyOrders = new ArrayList<>();
 		staffPool.shutdownNow();
 		dronePool.shutdownNow();
 //		try {

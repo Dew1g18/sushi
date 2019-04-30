@@ -324,6 +324,13 @@ public class Client implements ClientInterface{
 		// TODO Auto-generated method stub
 		try{
 			User thisUser = gh.ifInList(users, user.getName());
+			Order reg = null;
+			for(Order order : thisUser.getOrderHistory()){
+				if (order.getStatus().equals("REGISTER_USER")){
+					reg=order;
+				}
+			}
+			thisUser.getOrderHistory().remove(reg);
 			return  thisUser.getOrderHistory();
 		}catch(NullPointerException e){
 			//pass

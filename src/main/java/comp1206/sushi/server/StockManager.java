@@ -190,7 +190,7 @@ public class StockManager {
         try{
             server.notifyUpdate();
         }catch (Exception e){
-            System.out.println("Failed notify");
+//            System.out.println("Failed notify");
         }
     }
 
