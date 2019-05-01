@@ -37,21 +37,33 @@ public class Drone extends Model implements Runnable {
 		try {
 //			System.out.println("Drone running");
 			while (true){
-				Thread.sleep(100);
+				Thread.sleep(500);
 				if (stockManager.ingNeedRestock.size()>0&&getStatus().equals("IDLE")) {
-					System.out.println("Drone restocking");
+					System.out.println(getName()+" restocking");
 					Ingredient ing = stockManager.ingNeedRestock.remove(0);
 					Integer waitTime = (2*ing.getSupplier().getDistance().intValue())/speed.intValue();
 					setStatus("WORKING on " + ing.getName());
 					System.out.println(getName()+" is "+getStatus());
 //					Thread.sleep(waitTime*1000);
-					theWait(waitTime,ing);
+					theWait(waitTime,ing.getSupplier().getPostcode());
 					ing.inHand=true;
 
 					ing.restockIncrement();
 					setProgress(null);
 					ing.inHand=false;
 					ing.endRestocking();
+					setStatus("IDLE");
+				}
+				if (stockManager.readyOrders.size()>0&&getStatus().equals("IDLE")){
+					System.out.println(getName()+" delivering!");
+					Order order = stockManager.readyOrders.remove(0);
+					order.setStatus("In transit");
+					setStatus("WORKING on "+order.getName());
+					System.out.println(getStatus());
+					Postcode postcode = order.getUser().getPostcode();
+					Integer waitTime = (2*postcode.getDistance().intValue())/speed.intValue();
+					theWait(waitTime, postcode);
+					order.setStatus("Complete");
 					setStatus("IDLE");
 				}
 			}
@@ -61,7 +73,7 @@ public class Drone extends Model implements Runnable {
 		}
 	}
 
-	public void theWait(Integer waitTime, Ingredient ingredient)throws InterruptedException{
+	public void theWait(Integer waitTime, Postcode destination)throws InterruptedException{
 		try {
 			for (Integer i = 0; i < waitTime+1; i++) {
 				Thread.sleep(1000);
@@ -71,10 +83,10 @@ public class Drone extends Model implements Runnable {
 				//				System.out.println(getProgress());
 				if (i>waitTime/2){
 					setDestination(source);
-					setSource(ingredient.getSupplier().getPostcode());
+					setSource(destination);
 				}else{
 					setSource(restaurant);
-					setDestination(ingredient.getSupplier().getPostcode());
+					setDestination(destination);
 				}
 			}
 		}catch(InterruptedException e){

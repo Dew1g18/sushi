@@ -2,8 +2,7 @@ package comp1206.sushi.server;
 
 import comp1206.sushi.common.*;
 
-import java.util.ArrayList;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
@@ -25,6 +24,7 @@ public class StockManager {
         pauseDishChecking=true;
         end=true;
         readyDishes=new ArrayList<>();
+        readyOrders=new ArrayList<>();
         pool.shutdownNow();
 //        System.out.println("Shutting down stock manager");
         while(true){
@@ -96,6 +96,7 @@ public class StockManager {
                             if (!pauseDishChecking) {
                                 ingredientCheck();
                                 dishCheck();
+                                orderCheck();
                                 tryNotify();
 //                                System.out.println("RUNNNN");
 //                                dishChecker2();
@@ -132,7 +133,6 @@ public class StockManager {
             ingredient.startRestocking();
             tryNotify();
         }
-
     }}
 
     private Staff getWorker(){
@@ -147,8 +147,14 @@ public class StockManager {
         return worker;
     }
 
+
+    public ArrayList<Order> readyOrders = new ArrayList<>();
     public void orderCheck(){if(!end){
         for (Order order : server.getOrders()){
+            if (order.getStatus().equals("Dishes ready")){
+                order.setStatus("Awaiting drone");
+                readyOrders.add(order);
+            }
         }
     }}
 

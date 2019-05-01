@@ -37,13 +37,14 @@ public class Server implements ServerInterface {
 	GenericHelp gh  = new GenericHelp();
 	ThreadPoolExecutor staffPool;
 	ThreadPoolExecutor dronePool;
+	ThreadPoolExecutor pool;
 	OrderHandler orderHandler;
 
 	public Server() {
         logger.info("Starting up server...");
 		stockManager= new StockManager(this);
-		this.staffPool = (ThreadPoolExecutor) Executors.newFixedThreadPool(10);
-		this.dronePool = (ThreadPoolExecutor) Executors.newFixedThreadPool(10);
+//		this.staffPool = (ThreadPoolExecutor) Executors.newFixedThreadPool(10);
+		this.pool = (ThreadPoolExecutor) Executors.newFixedThreadPool(10);
 
 		Postcode restaurantPostcode = new Postcode("SO17 1BJ");
 		restaurant = new Restaurant("Mock Restaurant",restaurantPostcode);
@@ -440,19 +441,26 @@ public class Server implements ServerInterface {
 
 	@Override
 	public void loadConfiguration(String filename){
-		staffPool.shutdownNow();
-		dronePool.shutdownNow();
+//		staffPool.shutdownNow();
+//		dronePool.shutdownNow();
+		pool.shutdownNow();
 //		try {
-			while (true) {
-//				Thread.sleep(100);
-				if (staffPool.isTerminated()) {
-					System.out.println("Staff threads should be dead: " + staffPool.getActiveCount());
-					break;
-				}
-			}
-			while(true){
-				if (dronePool.isTerminated()) {
-					System.out.println("Drone threads should be dead: " + dronePool.getActiveCount());
+//			while (true) {
+////				Thread.sleep(100);
+//				if (staffPool.isTerminated()) {
+//					System.out.println("Staff threads should be dead: " + staffPool.getActiveCount());
+//					break;
+//				}
+//			}
+//			while(true){
+//				if (dronePool.isTerminated()) {
+//					System.out.println("Drone threads should be dead: " + dronePool.getActiveCount());
+//					break;
+//				}
+//			}
+		while(true){
+				if (pool.isTerminated()) {
+					System.out.println("Drone threads should be dead: " + pool.getActiveCount());
 					break;
 				}
 			}
@@ -472,15 +480,16 @@ public class Server implements ServerInterface {
 
 
 	public void startStuffAgain(){
-		staffPool = (ThreadPoolExecutor) Executors.newFixedThreadPool(10);
-		dronePool = (ThreadPoolExecutor) Executors.newFixedThreadPool(10);
+//		staffPool = (ThreadPoolExecutor) Executors.newFixedThreadPool(10);
+//		dronePool = (ThreadPoolExecutor) Executors.newFixedThreadPool(10);
+		pool = (ThreadPoolExecutor) Executors.newFixedThreadPool(15);
 		for (Staff staff : staff){
-			staffPool.submit(staff);
+			pool.submit(staff);
 		}
 		for (Drone drone : drones){
-			dronePool.submit(drone);
+			pool.submit(drone);
 		}
-		dronePool.submit(orderHandler);
+		pool.submit(orderHandler);
 	}
 
 	@Override
