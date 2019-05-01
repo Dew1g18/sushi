@@ -91,6 +91,7 @@ public class Configuration {
                     String[] dishAndValList = dishAndValue.split(" \\* ");
                     Dish dish1 = gh.ifInList(server.getDishes(),dishAndValList[1]);
                     Integer val = Integer.parseInt(dishAndValList[0]);
+                    order.setStatus("Received by server");
                     order.addDishToOrder(dish1,val);
                 }
                 orders.add(order);

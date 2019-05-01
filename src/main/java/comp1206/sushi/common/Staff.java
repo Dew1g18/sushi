@@ -84,7 +84,7 @@ public class Staff extends Model implements Runnable{
 		}
 	}
 
-	public void restockBatch(Dish dish){
+	public void restockBatch(Dish dish) throws InterruptedException{
 		Random random = new Random();
 		try {
 //			System.out.println(name+" is restocking "+ dish.getName());
@@ -96,6 +96,8 @@ public class Staff extends Model implements Runnable{
 			System.out.println(getName()+ " restocked "+ dish.getName());
 			setStatus("IDLE");
 			dish.endRestocking();
+		}catch (InterruptedException e){
+			throw new InterruptedException();
 		}catch (Exception e){
 //			e.printStackTrace();
 			setStatus("IDLE");

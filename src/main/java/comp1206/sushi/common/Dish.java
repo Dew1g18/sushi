@@ -71,9 +71,9 @@ public class Dish extends Model implements Serializable {
 		this.stock = stockLevel;
 //		System.out.println(getName()+" ~ "+stockLevel);
 	}
-	public Number takePositiveStock(Number delta)throws Exception{
+	public Number takePositiveStock(Number delta)throws TooMuchException{
 		if (delta.intValue()>getStock().intValue()){
-			throw new Exception("Can't take that much!!");
+			throw new TooMuchException();
 		}
 		setStockLevel(getStock().intValue()-delta.intValue());
 		return stock;

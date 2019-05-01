@@ -61,7 +61,7 @@ public class Drone extends Model implements Runnable {
 		}
 	}
 
-	public void theWait(Integer waitTime, Ingredient ingredient){
+	public void theWait(Integer waitTime, Ingredient ingredient)throws InterruptedException{
 		try {
 			for (Integer i = 0; i < waitTime+1; i++) {
 				Thread.sleep(1000);
@@ -79,6 +79,7 @@ public class Drone extends Model implements Runnable {
 			}
 		}catch(InterruptedException e){
 			System.out.println("HMM");
+			throw new InterruptedException();
 		}
 	}
 

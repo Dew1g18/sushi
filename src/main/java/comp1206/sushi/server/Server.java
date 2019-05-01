@@ -26,7 +26,6 @@ public class Server implements ServerInterface {
 	public ArrayList<Ingredient> ingredients = new ArrayList<Ingredient>();
 
 	public ArrayList<Order> orders = new ArrayList<Order>();
-	public ArrayList<Order> readyOrders = new ArrayList<Order>();
 
 	public ArrayList<Staff> staff = new ArrayList<Staff>();
 	public ArrayList<Supplier> suppliers = new ArrayList<Supplier>();
@@ -59,13 +58,13 @@ public class Server implements ServerInterface {
 		Supplier supplier2 = addSupplier("Supplier 2",postcode2);
 		Supplier supplier3 = addSupplier("Supplier 3",postcode3);
 		
-		Ingredient ingredient1 = addIngredient("Ingredient 1","grams",supplier1,1,5,1);
-		Ingredient ingredient2 = addIngredient("Ingredient 2","grams",supplier2,1,5,1);
-		Ingredient ingredient3 = addIngredient("Ingredient 3","grams",supplier3,1,5,1);
+		Ingredient ingredient1 = addIngredient("Ingredient 1","grams",supplier1,1,20,1);
+		Ingredient ingredient2 = addIngredient("Ingredient 2","grams",supplier2,1,20,1);
+		Ingredient ingredient3 = addIngredient("Ingredient 3","grams",supplier3,1,20,1);
 		
-		Dish dish1 = addDish("Dish 1","Dish 1",1,21,10);
-		Dish dish2 = addDish("Dish 2","Dish 2",2,1,10);
-		Dish dish3 = addDish("Dish 3","Dish 3",3,1,10);
+		Dish dish1 = addDish("Dish 1","Dish 1",1,21,4);
+		Dish dish2 = addDish("Dish 2","Dish 2",2,10,4);
+		Dish dish3 = addDish("Dish 3","Dish 3",3,10,4);
 		
 //		orders.add(new Order());
 		users.add(new User("dave","dave","neh",postcode1));
@@ -88,6 +87,7 @@ public class Server implements ServerInterface {
 		addDrone(2);
 		addDrone(3);
 
+		orderHandler = new OrderHandler(this);
 		startStuffAgain();
 
 		stockManager.init1();
@@ -110,7 +110,8 @@ public class Server implements ServerInterface {
 			}
 		});
 		checkDataServer.start();
-		orderHandler = new OrderHandler(this);
+
+
 
 
 
@@ -439,7 +440,6 @@ public class Server implements ServerInterface {
 
 	@Override
 	public void loadConfiguration(String filename){
-		this.readyOrders = new ArrayList<>();
 		staffPool.shutdownNow();
 		dronePool.shutdownNow();
 //		try {
@@ -480,6 +480,7 @@ public class Server implements ServerInterface {
 		for (Drone drone : drones){
 			dronePool.submit(drone);
 		}
+		dronePool.submit(orderHandler);
 	}
 
 	@Override

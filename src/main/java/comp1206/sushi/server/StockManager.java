@@ -1,9 +1,6 @@
 package comp1206.sushi.server;
 
-import comp1206.sushi.common.Dish;
-import comp1206.sushi.common.Ingredient;
-import comp1206.sushi.common.Staff;
-import comp1206.sushi.common.TooMuchException;
+import comp1206.sushi.common.*;
 
 import java.util.ArrayList;
 import java.util.Map;
@@ -149,6 +146,11 @@ public class StockManager {
         //If a worker is found, completing the task
         return worker;
     }
+
+    public void orderCheck(){if(!end){
+        for (Order order : server.getOrders()){
+        }
+    }}
 
 
     public ArrayList<Dish> readyDishes= new ArrayList<>();
